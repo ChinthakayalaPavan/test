@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Contact Us — I Got Bingo | Townhall</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Contact page for I Got Bingo by Townhall" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      margin: 0;
+      background: #0f1115;
+      color: #e7e9ee;
+      line-height: 1.6;
+    }
+    header {
+      text-align: center;
+      padding: 48px 20px 16px;
+    }
+    header h1 {
+      margin: 0 0 10px;
+      font-size: 2rem;
+    }
+    header p {
+      color: #aab2c5;
+    }
+    main {
+      max-width: 960px;
+      margin: 24px auto 56px;
+      padding: 0 20px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid #262a36;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 1.3rem;
+      color: #fff;
+    }
+    p, li { color: #e7e9ee; }
+    .muted { color: #aab2c5; font-size: 0.9rem; }
+    a { color: #ff9a1f; }
+    a:hover { text-decoration: underline; }
+    form {
+      display: grid;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    label {
+      font-weight: 500;
+      color: #fff;
+      display: block;
+      margin-bottom: 6px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #444a5a;
+      background: #1a1d25;
+      color: #fff;
+      font-size: 1rem;
+    }
+    textarea { resize: vertical; min-height: 120px; }
+    button {
+      background: #ff9a1f;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #000;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    button:hover { background: #e88817; }
+    footer {
+      max-width: 960px;
+      margin: 0 auto 30px;
+      padding: 0 20px;
+      color: #aab2c5;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Contact Us</h1>
+    <p>for <strong>I Got Bingo</strong> by Townhall</p>
+  </header>
+
+  <main>
+    <h2>We’d love to hear from you!</h2>
+    <p>If you have any questions, feedback, or support requests about <em>I Got Bingo</em>, please reach out using the form below or via our official contact details.</p>
+
+    <form action="mailto:pavanchintakayala1234@gmail.com" method="post" enctype="text/plain">
+      <div>
+        <label for="name">Your Name</label>
+        <input type="text" id="name" name="name" required />
+      </div>
+
+      <div>
+        <label for="email">Your Email</label>
+        <input type="email" id="email" name="email" required />
+      </div>
+
+      <div>
+        <label for="message">Message</label>
+        <textarea id="message" name="message" required></textarea>
+      </div>
+
+      <button type="submit">Send Message</button>
+    </form>
+
+    <h2>Other ways to reach us</h2>
+    <p><strong>Email:</strong> <a href="mailto:pavanchintakayala1234@gmail.com">pavanchintakayala1234@gmail.com</a></p>
+    <p><strong>Support Hours:</strong> Mon – Sat, 9:00 AM – 6:00 PM (IST)</p>
+    <p><strong>Company:</strong> Townhall</p>
+  </main>
+
+  <footer>
+    <p>© <span id="year"></span> Townhall — All rights reserved.</p>
+    <p>
+      <a href="index.html">Home</a> · 
+      <a href="terms.html">Terms &amp; Conditions</a> · 
+      <a href="privacy.html">Privacy Policy</a> · 
+      <a href="refund.html">Refund Policy</a>
+    </p>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

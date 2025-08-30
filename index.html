@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bingo Loading</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: url("https://img.freepik.com/premium-vector/realistic-bingo-game-3d-background_98292-20221.jpg?w=900") no-repeat center center fixed;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+    }
+    .box {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    }
+    .loader {
+      border: 5px solid rgba(255,255,255,0.2);
+      border-top: 5px solid #ffffff;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background: #007BFF;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="box" id="statusBox">
+    <h2>Checking Internet Connection...</h2>
+    <div class="loader"></div>
+  </div>
+
+  <script>
+    function checkInternet() {
+      const statusBox = document.getElementById("statusBox");
+
+      if (navigator.onLine) {
+        // Internet available → go to login.html
+        statusBox.innerHTML = "<h2>Connected! Redirecting...</h2><div class='loader'></div>";
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1500);
+      } else {
+        // No internet → show retry option
+        statusBox.innerHTML = `
+          <h2>No Internet Connection</h2>
+          <p>Please check your connection and try again.</p>
+          <button onclick="checkInternet()">Retry</button>
+        `;
+      }
+    }
+
+    // Check when page loads
+    window.onload = checkInternet;
+
+    // Also re-check if network status changes
+    window.addEventListener("online", checkInternet);
+    window.addEventListener("offline", checkInternet);
+  </script>
+</body>
+</html>

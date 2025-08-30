@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Play with Friends - Bingo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: url("https://t3.ftcdn.net/jpg/06/05/63/96/360_F_605639623_v9uvhXjM8BpdmBmJzREZ9yduy5LCYZH6.jpg") no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+    }
+    h1 { margin-top: 20px; text-shadow: 2px 2px 5px black; }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, 60px);
+      gap: 5px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .cell {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: blue;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .cell.selected { background: green; }
+    #opponentBoard { margin-top: 30px; display: none; }
+    #status { margin: 15px; font-size: 18px; }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      background: orange;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #preGameControls { margin-top: 15px; }
+    #bingoStatus {
+      font-size: 32px;
+      letter-spacing: 15px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .bingoLetter { color: gray; text-shadow: 1px 1px 3px black; transition: all 0.3s ease; }
+    .bingoLetter.glow { color: yellow; text-shadow: 0 0 10px yellow, 0 0 20px orange; }
+    #roomSection { margin: 20px; }
+    #roomCode { font-size: 24px; font-weight: bold; }
+    #roomCodeDiv {
+      margin: 15px auto;
+      padding: 10px 20px;
+      border: 2px dashed yellow;
+      width: fit-content;
+      border-radius: 10px;
+      font-size: 20px;
+      background: rgba(0,0,0,0.6);
+    }
+    #afterGameControls { margin-top: 20px; display:none; }
+    #playerNameTag {
+      font-size: 18px;
+      font-weight: bold;
+      color: yellow;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>👥 Play with Friends</h1>
+
+  <div id="roomSection">
+    <button id="createRoomBtn">➕ Create Room</button>
+    <button id="joinRoomBtn">🔑 Join Room</button>
+    <div id="roomCodeDiv" style="display:none;">Room Code: <span id="roomCode"></span></div>
+    <div id="joinInputDiv" style="display:none;">
+      <input type="text" id="roomInput" placeholder="Enter Code" maxlength="5" style="padding:5px; font-size:18px;">
+      <button id="joinConfirmBtn">Join</button>
+    </div>
+  </div>
+
+  <div id="gameArea" style="display:none;">
+    <div id="status">Waiting...</div>
+
+    <div id="bingoStatus">
+      <span id="letterB" class="bingoLetter">B</span>
+      <span id="letterI" class="bingoLetter">I</span>
+      <span id="letterN" class="bingoLetter">N</span>
+      <span id="letterG" class="bingoLetter">G</span>
+      <span id="letterO" class="bingoLetter">O</span>
+    </div>
+
+    <div id="roomCodeDivGame" style="display:none;">Room Code: <span id="roomCodeGame"></span></div>
+
+    <div id="playerNameTag"></div>
+    <h2 id="playerTitle">Your Board</h2>
+    <div id="playerBoard" class="board"></div>
+
+    <div id="preGameControls">
+      <button id="reshuffleBtn">🔄 Re-shuffle</button>
+      <button id="okBtn">✅ OK</button>
+    </div>
+
+    <h2 id="opponentTitle">Opponent's Board</h2>
+    <div id="opponentBoard" class="board"></div>
+
+    <div id="afterGameControls">
+      <button id="playAgain">Play Again</button>
+      <button id="joinAnother">Join Another Room</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, get, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB_v8PrYl2_3mUETzk-JYTxm3-YdE5FzE4",
+      authDomain: "bingo-multiplayer-2b0de.firebaseapp.com",
+      databaseURL: "https://bingo-multiplayer-2b0de-default-rtdb.firebaseio.com/",
+      projectId: "bingo-multiplayer-2b0de",
+      storageBucket: "bingo-multiplayer-2b0de.appspot.com",
+      messagingSenderId: "363457734024",
+      appId: "1:363457734024:web:56ddb17e0313fd8283463d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // ✅ Fetch unique name from localStorage
+    const myUniqueName = localStorage.getItem("bingoUniqueName") || "Player";
+    document.getElementById("playerNameTag").textContent = "👤 " + myUniqueName;
+
+    // ... rest of your existing playonline.js logic (unchanged) ...
+
+
+    let playerId = "player_" + Math.floor(Math.random() * 1000000);
+    let gameId = null;
+    let playerRole = null;
+    let boardNumbers = [];
+    let opponentNumbers = [];
+    let myTurn = false;
+    let gameOver = false;
+    let ready = false;
+
+    const statusDiv = document.getElementById("status");
+    const playerBoardDiv = document.getElementById("playerBoard");
+    const opponentBoardDiv = document.getElementById("opponentBoard");
+    const playAgainBtn = document.getElementById("playAgain");
+    const joinAnotherBtn = document.getElementById("joinAnother");
+    const reshuffleBtn = document.getElementById("reshuffleBtn");
+    const okBtn = document.getElementById("okBtn");
+    const preGameControls = document.getElementById("preGameControls");
+    const afterGameControls = document.getElementById("afterGameControls");
+    const playerTitle = document.getElementById("playerTitle");
+    const opponentTitle = document.getElementById("opponentTitle");
+
+    const roomCodeDiv = document.getElementById("roomCodeDiv");
+    const roomCodeSpan = document.getElementById("roomCode");
+    const roomCodeDivGame = document.getElementById("roomCodeDivGame");
+    const roomCodeGameSpan = document.getElementById("roomCodeGame");
+
+    const createRoomBtn = document.getElementById("createRoomBtn");
+    const joinRoomBtn = document.getElementById("joinRoomBtn");
+    const joinInputDiv = document.getElementById("joinInputDiv");
+    const roomInput = document.getElementById("roomInput");
+    const joinConfirmBtn = document.getElementById("joinConfirmBtn");
+    const gameArea = document.getElementById("gameArea");
+
+    const bingoLetters = [
+      document.getElementById("letterB"),
+      document.getElementById("letterI"),
+      document.getElementById("letterN"),
+      document.getElementById("letterG"),
+      document.getElementById("letterO")
+    ];
+
+    function generateRoomCode() {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      let code = "";
+      for (let i = 0; i < 5; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    }
+
+    createRoomBtn.onclick = async () => {
+      const code = generateRoomCode();
+      gameId = code;
+      playerRole = "P1";
+      boardNumbers = generateBoard();
+
+      await set(ref(db, "rooms/" + code), {
+        P1: { id: playerId, board: boardNumbers, ready: false, active: true },
+        P2: null,
+        turn: "P1",
+        lastMove: null,
+        winner: null,
+        selected: {},
+        rematch: {}
+      });
+
+      onDisconnect(ref(db, "rooms/" + code + "/P1/active")).set(false);
+
+      roomCodeDiv.style.display = "block";
+      roomCodeSpan.textContent = code;
+      roomCodeDivGame.style.display = "block";
+      roomCodeGameSpan.textContent = code;
+
+      document.getElementById("roomSection").style.display = "none";
+      gameArea.style.display = "block";
+
+      startGame(gameId, playerRole);
+    };
+
+    joinRoomBtn.onclick = () => { joinInputDiv.style.display = "block"; };
+
+    joinConfirmBtn.onclick = async () => {
+      const code = roomInput.value.toUpperCase();
+      if (!code) return;
+      const roomRef = ref(db, "rooms/" + code);
+      const snap = await get(roomRef);
+      if (!snap.exists()) { alert("Room not found!"); return; }
+
+      gameId = code;
+      playerRole = "P2";
+      opponentNumbers = snap.val().P1.board;
+      boardNumbers = generateBoard();
+
+      await update(roomRef, {
+        P2: { id: playerId, board: boardNumbers, ready: false, active: true }
+      });
+      onDisconnect(ref(db, "rooms/" + code + "/P2/active")).set(false);
+
+      roomCodeDivGame.style.display = "block";
+      roomCodeGameSpan.textContent = code;
+
+      document.getElementById("roomSection").style.display = "none";
+      gameArea.style.display = "block";
+
+      startGame(gameId, playerRole);
+    };
+
+    function generateBoard() {
+      let nums = [...Array(25).keys()].map(n => n + 1);
+      for (let i = nums.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [nums[i], nums[j]] = [nums[j], nums[i]];
+      }
+      return nums;
+    }
+
+    function renderBoard(boardDiv, numbers, clickable) {
+      boardDiv.innerHTML = "";
+      numbers.forEach((num, i) => {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.textContent = num;
+        if (clickable && ready) cell.addEventListener("click", () => handleCellClick(i, cell));
+        boardDiv.appendChild(cell);
+      });
+    }
+
+    function applySelections(boardDiv, numbers, selectedSet) {
+      if (!selectedSet) return;
+      const cells = [...boardDiv.children];
+      for (let i = 0; i < numbers.length; i++) {
+        if (selectedSet.has(numbers[i])) cells[i]?.classList.add("selected");
+      }
+    }
+
+    function handleCellClick(index, cell) {
+      if (!myTurn || gameOver) return;
+      if (cell.classList.contains("selected")) return;
+      cell.classList.add("selected");
+      sendMove(boardNumbers[index]);
+    }
+
+    async function sendMove(number) {
+      await update(ref(db, "rooms/" + gameId + "/selected"), { [number]: true });
+      await update(ref(db, "rooms/" + gameId), {
+        lastMove: number,
+        turn: playerRole === "P1" ? "P2" : "P1"
+      });
+    }
+
+    function checkWin(numbers, selectedSet, updateLetters = false) {
+      let winCount = 0;
+      for (let r = 0; r < 5; r++) if (numbers.slice(r*5, r*5+5).every(n => selectedSet.has(n))) winCount++;
+      for (let c = 0; c < 5; c++) if ([0,1,2,3,4].every(r => selectedSet.has(numbers[r*5+c]))) winCount++;
+      if ([0,6,12,18,24].every(i => selectedSet.has(numbers[i]))) winCount++;
+      if ([4,8,12,16,20].every(i => selectedSet.has(numbers[i]))) winCount++;
+
+      if (updateLetters) {
+        for (let i = 0; i < 5; i++) {
+          if (i < winCount) bingoLetters[i].classList.add("glow");
+          else bingoLetters[i].classList.remove("glow");
+        }
+      }
+      return winCount >= 5;
+    }
+
+    function startGame(gId, role) {
+      boardNumbers = boardNumbers.length ? boardNumbers : generateBoard();
+      renderBoard(playerBoardDiv, boardNumbers, false);
+
+      reshuffleBtn.onclick = () => {
+        if (ready) return;
+        boardNumbers = generateBoard();
+        renderBoard(playerBoardDiv, boardNumbers, false);
+        update(ref(db, "rooms/" + gId + "/" + role), { board: boardNumbers });
+      };
+
+      okBtn.onclick = () => {
+        if (ready) return;
+        ready = true;
+        renderBoard(playerBoardDiv, boardNumbers, true);
+        update(ref(db, "rooms/" + gId + "/" + role), { board: boardNumbers, ready: true });
+        statusDiv.textContent = "Waiting for opponent to press OK...";
+      };
+
+      onValue(ref(db, "rooms/" + gId), (snap) => {
+        const g = snap.val(); if (!g) return;
+        if (role === "P1" && g.P2) opponentNumbers = g.P2.board || [];
+        if (role === "P2" && g.P1) opponentNumbers = g.P1.board || [];
+
+        const selectedSet = new Set(g.selected ? Object.keys(g.selected).map(n => parseInt(n)) : []);
+        applySelections(playerBoardDiv, boardNumbers, selectedSet);
+
+        const bothReady = g.P1?.ready && g.P2?.ready;
+        if (!bothReady) { statusDiv.textContent = "Waiting for both players to confirm boards..."; return; }
+
+        preGameControls.style.display = "none";
+        myTurn = g.turn === role;
+        if (!gameOver) statusDiv.textContent = myTurn ? "Your turn!" : "Opponent's turn...";
+
+        if (g.lastMove) {
+          [...playerBoardDiv.children].forEach(cell => {
+            if (parseInt(cell.textContent) === g.lastMove) cell.classList.add("selected");
+          });
+        }
+
+        if (!gameOver) {
+          if (role === "P1" && g.P2 && g.P2.active === false) update(ref(db, "rooms/" + gId), { winner: "P1" });
+          if (role === "P2" && g.P1 && g.P1.active === false) update(ref(db, "rooms/" + gId), { winner: "P2" });
+        }
+
+        if (!gameOver && myTurn && checkWin(boardNumbers, selectedSet, true)) {
+          update(ref(db, "rooms/" + gId), { winner: playerRole });
+        }
+
+        if (g.winner && !gameOver) {
+          gameOver = true;
+          opponentBoardDiv.style.display = "grid";
+          renderBoard(opponentBoardDiv, opponentNumbers, false);
+          applySelections(opponentBoardDiv, opponentNumbers, selectedSet);
+          afterGameControls.style.display = "block";
+          statusDiv.textContent = "";
+
+          if (g.winner === playerRole) {
+            playerTitle.textContent = "Your Board - You Win 🎉";
+            opponentTitle.textContent = "Opponent's Board - Loss ❌";
+          } else {
+            playerTitle.textContent = "Your Board - You Loss ❌";
+            opponentTitle.textContent = "Opponent's Board - Win 🎉";
+          }
+        }
+
+        // Rematch logic
+        if (g.rematch?.P1 && g.rematch?.P2 && gameOver) {
+          resetForRematch();
+        }
+      });
+    }
+
+    playAgainBtn.onclick = async () => {
+      await update(ref(db, "rooms/" + gameId + "/rematch"), { [playerRole]: true });
+      statusDiv.textContent = "Waiting for opponent to press Play Again...";
+    };
+
+    joinAnotherBtn.onclick = () => { location.reload(); };
+
+    function resetForRematch() {
+      gameOver = false;
+      ready = false;
+      boardNumbers = generateBoard();
+      opponentNumbers = [];
+      renderBoard(playerBoardDiv, boardNumbers, false);
+      opponentBoardDiv.style.display = "none";
+      preGameControls.style.display = "block";
+      afterGameControls.style.display = "none";
+      bingoLetters.forEach(l => l.classList.remove("glow"));
+      playerTitle.textContent = "Your Board";
+      opponentTitle.textContent = "Opponent's Board";
+      update(ref(db, "rooms/" + gameId), {
+        P1: { ...{ id: null }, ...{ ready: false }, ...{ board: [] } },
+        P2: { ...{ id: null }, ...{ ready: false }, ...{ board: [] } },
+        winner: null,
+        lastMove: null,
+        selected: {},
+        rematch: {}
+      });
+      update(ref(db, "rooms/" + gameId + "/" + playerRole), { id: playerId, board: boardNumbers, ready: false, active: true });
+      statusDiv.textContent = "Reshuffle or press OK to start again!";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bingo Game</title>
+  <style>
+    /* Reset & layout */
+    * { box-sizing: border-box; }
+    html,body { height:100%; margin:0; padding:0; font-family: Arial, sans-serif; overflow-x:hidden; }
+    
+    /* background video */
+    #bgVideo {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      transform: translate(-50%, -50%);
+      z-index: 0;
+      filter: none; /* make it clear */
+    }
+
+    /* optional subtle overlay so UI is legible */
+    #bgOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Main UI container sits above video */
+    .uiLayer { position: relative; z-index: 2; min-height: 100vh; display:flex; align-items:center; justify-content:center; }
+
+    .menu { display: flex; flex-direction: column; gap: 20px; z-index: 3; }
+    .menu button { padding: 15px 30px; font-size: 20px; border: none; border-radius: 10px; cursor: pointer; background: orange; color: white; font-weight: bold; transition: all 0.3s ease; box-shadow: 0px 4px 8px rgba(0,0,0,0.3); }
+    .menu button:hover { background: darkorange; transform: scale(1.05); }
+    .menu button.active { background: green; color: yellow; transform: scale(1.05); box-shadow: 0px 0 20px yellow; }
+
+    /* menu button */
+    #menuBtn {
+      position: fixed;
+      top: 20px;
+      left: 20px;              /* keeps gap from left */
+      width: 54px;
+      height: 54px;
+      background: rgba(255,165,0,0.95);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 1005;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 30px;
+      color: white;
+      transition: transform 0.3s, box-shadow 0.3s, background 0.3s;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+    }
+    #menuBtn:hover { transform: rotate(90deg); background: orange; }
+    #menuBtn.active { box-shadow: 0 0 20px rgba(255,215,0,0.9); transform: rotate(45deg) scale(1.05); }
+
+    /* Sidebar - now sized to fit content only, colorful, rounded top & bottom */
+    #sidebar {
+      position: fixed;
+      top: 50px;            /* small gap from top */
+      left: -320px;         /* off screen initially */
+      width: 260px;
+      height: auto;         /* only as tall as its content */
+      background: linear-gradient(180deg, #ffb347, #ffcc33 35%, #ff7a18 70%, #e43a15);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      padding: 14px 18px;
+      transition: left 0.35s cubic-bezier(.2,.8,.2,1);
+      z-index: 1000;
+      box-shadow: 3px 6px 20px rgba(0,0,0,0.45);
+      border-radius: 12px; /* round all corners so top & bottom are rounded */
+      gap: 6px;
+      align-items: stretch;
+    }
+    #sidebar.show { left: 20px; } /* keep gap from left side of viewport */
+
+    /* Fancy link styles */
+    #sidebar a {
+      padding: 12px 14px;
+      text-decoration: none;
+      color: white;
+      font-size: 17px;
+      transition: transform 0.18s, background 0.18s, box-shadow 0.18s;
+      cursor: pointer;
+      border-radius: 10px;
+      display: block;
+      margin: 6px 0;
+      background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2) inset;
+    }
+    #sidebar a:hover {
+      transform: translateX(8px) scale(1.02);
+      background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    }
+
+    /* uniqueName - hidden visually as requested but kept for storage */
+    #uniqueName { padding: 0 10px; margin: 8px 0 18px 0; color: #FFD700; font-size: 15px; font-weight: bold; display: none; }
+
+    /* Modal overlay that prevents clicking menu while profile open */
+    .modalBlocker {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 2000;
+      display: none;
+    }
+    .modalBlocker.show { display:block; }
+
+    /* Profile popup - larger and centered. Blocks interactions until closed */
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 420px;
+      max-width: 95%;
+      background: rgba(10,10,10,0.98);
+      border-radius: 14px;
+      padding: 22px;
+      color: white;
+      text-align: center;
+      transform: translate(-50%, -50%) scale(0.9);
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      z-index: 3000;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      opacity: 0;
+      display: none;
+    }
+    .popup.show { display:block; transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+    .popup img.mainAvatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      margin: 12px auto;
+      border: 4px solid rgba(255,255,255,0.08);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+    }
+    .popup h3 { margin: 6px 0 2px 0; color:#FFD700; font-size:20px; }
+    .popup p { margin: 2px 0 8px 0; opacity:0.95; }
+
+    /* avatar selection thumbnails */
+    .avatarRow { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
+    .avatarRow img.thumb {
+      width:56px; height:56px; border-radius:50%; object-fit:cover; cursor:pointer; border: 2px solid transparent; transition: transform 0.15s, border-color 0.15s;
+    }
+    .avatarRow img.thumb:hover { transform: scale(1.06); border-color: rgba(255,215,0,0.9); }
+
+    .popup button { margin-top: 14px; padding: 10px 20px; font-size: 16px; background: orange; color: white; border: none; border-radius: 10px; cursor: pointer; transition: 0.25s; }
+    .popup button:hover { background: darkorange; }
+
+    /* Payments & history small popup share same look */
+    .popup.small { width: 320px; max-width: 95%; padding: 18px; }
+
+    /* History list */
+    #historyList { max-height: 300px; overflow-y: auto; text-align: left; margin-top: 10px; }
+    #historyList .histItem { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    #historyList .histItem strong { display: inline-block; width: 110px; }
+
+    /* Make sure main menu buttons stand out on center */
+    .centerContainer { position: relative; z-index:2; text-align:center; }
+    @media (max-width:520px) {
+      #menuBtn { left: 12px; top: 12px; width:48px; height:48px; font-size:24px; }
+      #sidebar { width: 200px; }
+    }
+
+    /* Footer styling */
+    footer { z-index: 2; }
+  </style>
+</head>
+<body>
+
+  <!-- Background video -->
+  <video id="bgVideo" autoplay loop muted playsinline>
+    <source src="bingo.mp4" type="video/mp4">
+    Your browser does not support video tag.
+  </video>
+
+  
+
+  <div id="bgOverlay"></div>
+
+  <!-- audio - loop (background music) -->
+  <audio id="bgMusic" src="Drums-Of-Liberation.mp3" loop></audio>
+
+  <!-- audio effects for UI interactions -->
+  <audio id="openSound" src="keyboard-click-327728.mp3" preload="auto"></audio>
+  <audio id="closeSound" src="ui-button-click-5-327756.mp3" preload="auto"></audio>
+
+  <!-- Modal blocker to prevent clicks while profile open -->
+  <div id="modalBlocker" class="modalBlocker"></div>
+
+  <!-- Top-left menu button -->
+  <button id="menuBtn" aria-label="Toggle menu">&#9776;</button>
+
+  <!-- Sidebar (now a compact colorful box sized to options) -->
+  <div id="sidebar" aria-hidden="true">
+    <a href="#" id="profile">My Profile</a>
+    <div id="uniqueName"></div> <!-- intentionally hidden visually per request -->
+    <a href="#" id="history">My History Competition</a>
+    <a href="#" id="payments">Payments</a>
+    <a href="#" id="howto">How to Play</a>
+    <a href="#" id="logout">Log Out</a>
+  </div>
+
+  <!-- Profile popup -->
+  <div id="profilePopup" class="popup" role="dialog" aria-modal="true" aria-hidden="true">
+    <h3 id="profileTitle">Profile</h3>
+    <div style="display:flex;flex-direction:column;align-items:center;">
+      <p style="margin:6px 0 0 0;text-align:center;"><strong>Name:</strong> <span id="profileNameDisplay"></span></p>
+      <p style="margin:2px 0 8px 0;"><strong>Email:</strong> <span id="profileEmailDisplay"></span></p>
+
+      <img id="profileAvatar" class="mainAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Avatar">
+
+      <div style="width:100%;max-width:360px;margin-top:8px;">
+        <p style="opacity:0.85;margin:6px 0;">Choose avatar (click to update):</p>
+        <div class="avatarRow" id="avatarRow">
+          <img class="thumb" src="luffy1.jpg" data-src="luffy1.jpg" alt="luffy1">
+          <img class="thumb" src="luffy2.jpg" data-src="luffy2.jpg" alt="luffy2">
+          <img class="thumb" src="luffy3.jpg" data-src="luffy3.jpg" alt="luffy3">
+          <img class="thumb" src="luffy4.jpg" data-src="luffy4.jpg" alt="luffy4">
+          <img class="thumb" src="luffy5.jpg" data-src="luffy5.jpg" alt="luffy5">
+          <img class="thumb" src="luffy6.jpg" data-src="luffy6.jpg" alt="luffy6">
+        </div>
+      </div>
+    </div>
+
+    <button id="closeProfile">Close</button>
+  </div>
+
+  <!-- History popup -->
+  <div id="historyPopup" class="popup small" aria-hidden="true">
+    <h3>Competition History</h3>
+    <div id="historyList"><p style="opacity:0.8">No history yet.</p></div>
+    <button id="closeHistory">Close</button>
+  </div>
+
+  <!-- Main center menu -->
+  <div class="uiLayer">
+    <div class="centerContainer">
+      <div class="menu">
+        <button onclick="navigate(this, 'playonline.html')">Play Online</button>
+        <button onclick="navigate(this, 'playwithfriend.html')">Play with Friends</button>
+        <button onclick="navigate(this, 'joincompetition.html')">Join Competition</button>
+      </div>
+    </div>
+  </div>
+
+  <footer style="text-align:center; padding: 15px; background:#111; color:#fff; position:fixed; bottom:0; width:100%; z-index:2;">
+    <a href="privacy.html" style="color:#FFD700; margin:0 10px;">Privacy Policy</a> |
+    <a href="refund.html" style="color:#FFD700; margin:0 10px;">Refund & Cancellation</a> |
+    <a href="terms.html" style="color:#FFD700; margin:0 10px;">Terms & Conditions</a> |
+    <a href="contact.html" style="color:#FFD700; margin:0 10px;">Contact Us</a>
+  </footer>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB_v8PrYl2_3mUETzk-JYTxm3-YdE5FzE4",
+      authDomain: "bingo-multiplayer-2b0de.firebaseapp.com",
+      projectId: "bingo-multiplayer-2b0de",
+      storageBucket: "bingo-multiplayer-2b0de.appspot.com",
+      messagingSenderId: "363457734024",
+      appId: "1:363457734024:web:56ddb17e0313fd8283463d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // UI elements
+    const menuBtn = document.getElementById("menuBtn");
+    const sidebar = document.getElementById("sidebar");
+    const profileDiv = document.getElementById("profile");
+    const uniqueNameDiv = document.getElementById("uniqueName");
+
+    const profilePopup = document.getElementById("profilePopup");
+    const profileAvatar = document.getElementById("profileAvatar");
+    const profileNameDisplay = document.getElementById("profileNameDisplay");
+    const profileEmailDisplay = document.getElementById("profileEmailDisplay");
+    const closeProfileBtn = document.getElementById("closeProfile");
+    const modalBlocker = document.getElementById("modalBlocker");
+
+    const historyPopup = document.getElementById("historyPopup");
+    const historyList = document.getElementById("historyList");
+    const closeHistory = document.getElementById("closeHistory");
+
+    const avatarRow = document.getElementById("avatarRow");
+    const openSound = document.getElementById("openSound");
+    const closeSound = document.getElementById("closeSound");
+    const bgMusic = document.getElementById('bgMusic');
+
+    let myUniqueName = "";
+    let balance = parseFloat(localStorage.getItem("bingoBalance") || "100"); // default ₹100
+
+    function updateBalanceUI() {
+      // kept same; balance is stored in localStorage for quick UI
+      localStorage.setItem("bingoBalance", balance);
+    }
+
+    // Redirect if not logged in
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+      } else {
+        let base = "";
+        if (user.email) base = user.email.split("@")[0].replace(/[^a-zA-Z]/g, "");
+        else if (user.isAnonymous) base = "Guest";
+        else if (user.displayName) base = user.displayName.replace(/\s+/g, "");
+        else base = "Player";
+
+        const num = user.uid.slice(0, 4);
+        myUniqueName = `${base}${num}`;
+
+        // Keep unique name in localStorage for other pages but do not show in sidebar per request
+        localStorage.setItem("bingoUniqueName", myUniqueName);
+
+        // fill profile popup fields
+        profileNameDisplay.textContent = myUniqueName;
+        profileEmailDisplay.textContent = user.email || "Anonymous";
+
+        // avatar persistence: check if user previously chose one
+        const savedAvatar = localStorage.getItem("bingoAvatar");
+        profileAvatar.src = savedAvatar || user.photoURL || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+
+        // fetch server-side balance (optional):
+        fetch(`/balance?user=${encodeURIComponent(myUniqueName)}`)
+          .then(r => r.json())
+          .then(j => {
+            if (j && j.balance !== undefined) {
+              balance = parseFloat(j.balance);
+              updateBalanceUI();
+            }
+          })
+          .catch(()=>{/* ignore if backend not running */});
+      }
+    });
+
+    // Sidebar toggle - only the button gets an active highlight
+    menuBtn.addEventListener("click", () => {
+      const wasShown = sidebar.classList.contains("show");
+      const isShown = sidebar.classList.toggle("show");
+      menuBtn.classList.toggle("active", isShown);
+
+      // Play appropriate sound
+      try { if (!wasShown && isShown) openSound.play().catch(()=>{}); else closeSound.play().catch(()=>{}); } catch(e){}
+
+      // If profile modal is open, keep sidebar closed (modal priority)
+      if (profilePopup.classList.contains("show")) {
+        sidebar.classList.remove("show");
+        menuBtn.classList.remove("active");
+      }
+
+      // try to start background music if blocked by autoplay rules on first user gesture
+      tryPlayMusic();
+    });
+
+    // Helper to play open sound on clicks of menu options and center menu buttons
+    function playOpen() { try { openSound.currentTime = 0; openSound.play().catch(()=>{}); } catch(e){} }
+    function playClose() { try { closeSound.currentTime = 0; closeSound.play().catch(()=>{}); } catch(e){} }
+
+    // Add sound when clicking sidebar links (and behavior)
+    ['profile','history','payments','howto','logout'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        playOpen();
+        // open appropriate popup / behavior
+        if (id === 'profile') {
+          profilePopup.classList.add("show");
+          profilePopup.setAttribute('aria-hidden','false');
+          modalBlocker.classList.add("show");
+          sidebar.classList.remove("show");
+          menuBtn.classList.remove("active");
+          tryPlayMusic();
+        } else if (id === 'history') {
+          loadHistory();
+          historyPopup.classList.add("show");
+          historyPopup.setAttribute('aria-hidden','false');
+          modalBlocker.classList.add("show");
+          sidebar.classList.remove("show");
+          menuBtn.classList.remove("active");
+          tryPlayMusic();
+        } else if (id === 'payments') {
+          // ********* CHANGED: Navigate to payments.html (instead of opening in-page popup) *********
+          // we keep a short sound then redirect
+          setTimeout(()=>{ window.location.href = "payments.html"; }, 200);
+        } else if (id === 'howto') {
+          alert("How to Play clicked!");
+        } else if (id === 'logout') {
+          // logout will trigger sound and then sign out
+          (async () => {
+            playOpen();
+            try { await signOut(auth); window.location.href = "login.html"; }
+            catch (error) { alert("Logout failed: " + error.message); }
+          })();
+        }
+      });
+    });
+
+    // Close handlers for popups (play close sound)
+    closeProfileBtn.addEventListener("click", () => {
+      profilePopup.classList.remove("show");
+      profilePopup.setAttribute('aria-hidden','true');
+      modalBlocker.classList.remove("show");
+      playClose();
+    });
+    closeHistory.addEventListener("click", () => {
+      historyPopup.classList.remove("show");
+      historyPopup.setAttribute('aria-hidden','true');
+      modalBlocker.classList.remove("show");
+      playClose();
+    });
+
+    // clicking outside popup closes and plays close sound
+    modalBlocker.addEventListener("click", () => {
+      profilePopup.classList.remove("show");
+      profilePopup.setAttribute('aria-hidden','true');
+      historyPopup.classList.remove("show");
+      historyPopup.setAttribute('aria-hidden','true');
+      modalBlocker.classList.remove("show");
+      playClose();
+    });
+
+    // History loader
+    function loadHistory() {
+      const raw = localStorage.getItem("bingoCompetitionHistory");
+      let arr = [];
+      if (raw) {
+        try { arr = JSON.parse(raw); } catch(e){ arr = []; }
+      }
+      historyList.innerHTML = "";
+      if (!arr.length) {
+        historyList.innerHTML = "<p style='opacity:0.8'>No competitions played yet.</p>";
+        return;
+      }
+      arr.slice().reverse().forEach(h => {
+        const div = document.createElement("div");
+        div.className = "histItem";
+        div.innerHTML = `<strong>${h.result}</strong> Fee: ₹${h.fee} | Opponent: ${h.opponent || 'N/A'} <br>
+                         Date: ${h.date} | Prize: ₹${(h.prize||0).toFixed(2)}`;
+        historyList.appendChild(div);
+      });
+    }
+
+    // initialize UI values
+    updateBalanceUI();
+
+    // Navigation center menu buttons: play sound on click
+    window.navigate = function(btn, page) {
+      playOpen();
+      document.querySelectorAll('.menu button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if ((page === "playonline.html" || page === "playwithfriend.html" || page === "joincompetition.html") && myUniqueName) {
+        localStorage.setItem("bingoUniqueName", myUniqueName);
+      }
+      setTimeout(() => { window.location.href = page; }, 500);
+    }
+
+    // avatar selection logic: clicking thumbnail updates main avatar & persists
+    avatarRow.querySelectorAll('img.thumb').forEach(img => {
+      img.addEventListener('click', () => {
+        const src = img.getAttribute('data-src') || img.src;
+        profileAvatar.src = src;
+        // persist
+        localStorage.setItem("bingoAvatar", src);
+        // Optionally send to backend to update profile picture there
+        fetch('/update_avatar', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ user: myUniqueName, avatar: src })
+        }).catch(()=>{/* ignore */});
+        playOpen();
+      });
+    });
+
+    // Helper: attempt to play music (handles autoplay blocking)
+    function tryPlayMusic() {
+      if (!bgMusic) return;
+      const playPromise = bgMusic.play();
+      if (playPromise !== undefined) {
+        playPromise.then(()=>{ /* playing */ })
+        .catch(() => {
+          // autoplay blocked; will attempt again on later user interaction
+        });
+      }
+    }
+
+    // try once on interaction to satisfy autoplay policies
+    ['click','touchstart','keydown'].forEach(evt => {
+      window.addEventListener(evt, function onFirst() {
+        tryPlayMusic();
+        window.removeEventListener(evt, onFirst);
+      }, { once: true });
+    });
+
+    // Attempt immediate play (may be blocked)
+    tryPlayMusic();
+
+  </script>
+</body>
+</html>

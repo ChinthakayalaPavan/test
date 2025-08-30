@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Join Competition</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: url("https://img.freepik.com/premium-vector/realistic-bingo-game-3d-background_98292-20221.jpg?w=900") no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      padding-top: 60px;
+    }
+    .container { background: rgba(0,0,0,0.6); display:inline-block; padding: 30px; border-radius: 12px; }
+    h1 { margin: 0 0 10px 0; }
+    .fees { display:flex; gap:15px; justify-content:center; margin-top:20px; }
+    .feeBtn { padding: 15px 22px; background: orange; border:none; border-radius:10px; cursor:pointer; font-size:18px; color:white; font-weight:bold; }
+    .feeBtn:hover { transform: scale(1.05); }
+    .info { margin-top: 15px; color: #ddd; }
+    button.back { margin-top: 20px; padding: 8px 16px; border-radius: 8px; border: none; background: gray; color: white; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Join Competition</h1>
+    <p class="info">Choose entry amount (₹). When two players join the same fee, the match will begin. Winner gets 90% of the pot.</p>
+
+    <div class="fees">
+      <button class="feeBtn" data-fee="10">₹10</button>
+      <button class="feeBtn" data-fee="20">₹20</button>
+      <button class="feeBtn" data-fee="50">₹50</button>
+      <button class="feeBtn" data-fee="100">₹100</button>
+    </div>
+
+    <div style="margin-top:20px;">
+      <button class="back" onclick="location.href='indexpage.html'">Back to Menu</button>
+    </div>
+  </div>
+
+  <script>
+    // when one of the fee buttons clicked, navigate to competition.html?fee=XX
+    document.querySelectorAll('.feeBtn').forEach(b => {
+      b.addEventListener('click', () => {
+        const fee = b.getAttribute('data-fee');
+        // Save chosen fee to localStorage (for safety) and pass via query string
+        localStorage.setItem('bingoSelectedFee', fee);
+        window.location.href = `competition.html?fee=${fee}`;
+      });
+    });
+  </script>
+</body>
+</html>

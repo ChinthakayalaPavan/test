@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Bingo — Payments (UPI)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root { --bg1:#0b1020; --bg2:#101827; --accent:#ffb347; --accent2:#ff7a18; --ink:#111; --text:#fff; --muted:#cfd3e0; }
+    body{font-family:Arial,Helvetica,sans-serif;background:linear-gradient(var(--bg1),var(--bg2));color:var(--text);margin:0;padding:20px}
+    .wrap{max-width:880px;margin:0 auto}
+    .card{background:rgba(255,255,255,.05);border-radius:14px;padding:18px;box-shadow:0 12px 50px rgba(0,0,0,.55);margin:18px 0}
+    h1{margin:0 0 6px;color:#ffd166}
+    h3{margin:0 0 8px;color:#ffd166}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .between{justify-content:space-between}
+    .muted{color:var(--muted);font-size:14px}
+    .amountRow{display:flex;gap:12px;margin:10px 0}
+    .amountBtn{padding:10px 18px;border-radius:10px;border:0;background:rgba(255,255,255,.07);color:#fff;cursor:pointer;font-size:16px}
+    .amountBtn.active{background:linear-gradient(90deg,var(--accent2),var(--accent));color:var(--ink);font-weight:700;transform:scale(1.02)}
+    .upiGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:8px 0}
+    .upiBtn{padding:12px;border-radius:12px;border:0;background:rgba(255,255,255,.06);cursor:pointer;text-align:center}
+    .upiBtn.active{outline:2px solid #ffd166;background:rgba(255,255,255,.12)}
+    .upiBtn img{height:28px;display:block;margin:0 auto 6px}
+    .input{width:100%;padding:10px 12px;border-radius:10px;border:0;background:rgba(255,255,255,.06);color:#fff;font-size:15px}
+    .btnPrimary{padding:12px 16px;border-radius:12px;border:0;background:linear-gradient(90deg,var(--accent2),var(--accent));color:#111;font-weight:700;cursor:pointer}
+    .btnGhost{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#fff;cursor:pointer}
+    .balance{font-size:18px;font-weight:700}
+    .note{font-size:13px;color:#ddd}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="row between">
+        <h1>Payments</h1>
+        <div class="balance">Balance: <span id="balanceText">₹0</span></div>
+      </div>
+      <p class="muted">You can deposit only <b>₹50</b> or <b>₹100</b>. Funds add to your wallet after successful payment.</p>
+
+      <div class="amountRow">
+        <button class="amountBtn" id="amt50">₹50</button>
+        <button class="amountBtn" id="amt100">₹100</button>
+      </div>
+
+      <h3>Pay with UPI</h3>
+      <div class="upiGrid">
+        <button class="upiBtn" data-app="gpay" id="gpayBtn"><img src="https://static.thenounproject.com/png/6127438-200.png">Google Pay</button>
+        <button class="upiBtn" data-app="phonepe" id="phonepeBtn"><img src="https://static.thenounproject.com/png/6127441-200.png">PhonePe</button>
+        <button class="upiBtn" data-app="paytm" id="paytmBtn"><img src="https://static.thenounproject.com/png/6127443-200.png">Paytm</button>
+      </div>
+
+      <div class="row" style="justify-content:flex-end;margin-top:10px;">
+        <button id="depositUpi" class="btnPrimary">Deposit ₹<span id="depAmt">50</span></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Withdraw</h3>
+      <div class="row">
+        <input id="withdrawAmount" class="input" type="number" min="50" step="50" placeholder="Withdraw amount (₹)" />
+        <input id="withdrawDest" class="input" placeholder="Your UPI ID (e.g., name@upi)" />
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:8px;">
+        <button id="withdrawBtn" class="btnGhost">Withdraw</button>
+      </div>
+      <p id="withdrawMsg" class="note"></p>
+    </div>
+  </div>
+
+  <!-- Razorpay Checkout -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    const user = localStorage.getItem('bingoUniqueName') || 'GuestUser';
+    let selectedAmount = 50;
+
+    const amt50 = document.getElementById('amt50');
+    const amt100 = document.getElementById('amt100');
+    const depAmt = document.getElementById('depAmt');
+    const balanceText = document.getElementById('balanceText');
+
+    function setAmount(a){
+      selectedAmount = a;
+      depAmt.textContent = a;
+      amt50.classList.toggle('active', a===50);
+      amt100.classList.toggle('active', a===100);
+    }
+    setAmount(50);
+    amt50.onclick=()=>setAmount(50);
+    amt100.onclick=()=>setAmount(100);
+
+    async function refreshBalance(){
+      const r = await fetch(`/balance?user=${encodeURIComponent(user)}`);
+      const j = await r.json();
+      balanceText.textContent = '₹' + (j.balance ?? 0);
+    }
+    refreshBalance();
+
+    document.getElementById('depositUpi').onclick = async () => {
+      const res = await fetch('/create_order', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ amount: selectedAmount, user })
+      });
+      const data = await res.json();
+
+      const options = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: 'INR',
+        name: 'Bingo Game',
+        description: `Deposit ₹${selectedAmount}`,
+        order_id: data.order_id,
+        handler: function (response) {
+          fetch('/verify_payment', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              user, amount: selectedAmount
+            })
+          }).then(r=>r.json()).then(j=>{
+            if (j.success) {
+              alert('✅ Payment successful!');
+              refreshBalance(); // 🔥 instantly update balance
+            } else {
+              alert('❌ Payment verification failed');
+            }
+          });
+        }
+      };
+      new Razorpay(options).open();
+    };
+
+    document.getElementById('withdrawBtn').onclick = async () => {
+      const amt = Number(document.getElementById('withdrawAmount').value);
+      const vpa = document.getElementById('withdrawDest').value.trim();
+      const msg = document.getElementById('withdrawMsg');
+      msg.textContent = '';
+      const r = await fetch('/withdraw', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ user, amount: amt, dest: vpa })
+      });
+      const j = await r.json();
+      if (j.success) {
+        msg.style.color = '#86f7a9';
+        msg.textContent = j.message;
+        refreshBalance();
+      } else {
+        msg.style.color = '#ffb3b3';
+        msg.textContent = j.error;
+      }
+    };
+  </script>
+</body>
+</html>
