@@ -18,6 +18,7 @@
       overflow: hidden;
     }
 
+    /* Background Video */
     #bg-video {
       position: fixed;
       top: 0;
@@ -30,6 +31,7 @@
       z-index: -1;
     }
 
+    /* Title Animation */
     h1 {
       font-size: clamp(40px, 8vw, 80px);
       font-weight: 800;
@@ -40,7 +42,7 @@
       animation: bounce 1.5s ease forwards;
     }
     h1 span.orange { color: #b73105; animation: glow 1.5s infinite alternate; }
-    h1 span.green { color: #b73105; animation: glow 1.5s infinite alternate; }
+    h1 span.green { color: #00ff99; animation: glow 1.5s infinite alternate; }
 
     @keyframes bounce {
       0% { transform: scale(0.5) translateY(-100px); opacity: 0; }
@@ -50,10 +52,11 @@
     }
 
     @keyframes glow {
-      0% { text-shadow: 0 0 5px #fff, 0 0 5px currentColor, 0 0 5px currentColor; }
-      100% { text-shadow: 0 0 20px #fff, 0 0 20px currentColor, 0 0 20px currentColor, 0 0 20px currentColor; }
+      0% { text-shadow: 0 0 5px #fff, 0 0 5px currentColor; }
+      100% { text-shadow: 0 0 20px #fff, 0 0 20px currentColor; }
     }
 
+    /* Buttons */
     .button-box {
       display: flex;
       gap: 20px;
@@ -78,16 +81,8 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
-    .google-btn { background: #5f6368; color: white; }
-    .google-btn:hover { background: #444; }
-
-    .facebook-btn { background: #1877F2; color: white; }
-    .facebook-btn:hover { background: #0d5bd9; }
-
     .guest-btn { background: #FF6B00; color: white; }
     .guest-btn:hover { background: #cc5500; }
-
-    button img { width: 24px; height: 24px; }
 
     @media (max-width: 600px) {
       h1 { margin-bottom: 40px; }
@@ -97,6 +92,24 @@
         padding: 12px 20px;
       }
     }
+
+    /* Footer */
+    footer {
+      text-align:center;
+      padding: 15px;
+      background:#111;
+      color:#fff;
+      position:fixed;
+      bottom:0;
+      width:100%;
+      font-size: 14px;
+    }
+    footer a {
+      color:#FFD700;
+      margin:0 10px;
+      text-decoration: none;
+    }
+    footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -114,20 +127,21 @@
 
   <!-- Buttons -->
   <div class="button-box">
-    <!-- REMOVE old Google/Facebook sign-in (doesn’t work in WebView) -->
     <button class="guest-btn" onclick="playAsGuest()">Play as Guest</button>
   </div>
 
-  <footer style="text-align:center; padding: 15px; background:#111; color:#fff; position:fixed; bottom:0; width:100%;">
-    <a href="privacy.html" style="color:#FFD700; margin:0 10px;">Privacy Policy</a> |
-    <a href="refund.html" style="color:#FFD700; margin:0 10px;">Refund & Cancellation</a> |
-    <a href="terms.html" style="color:#FFD700; margin:0 10px;">Terms & Conditions</a> |
-    <a href="contact.html" style="color:#FFD700; margin:0 10px;">Contact Us</a>
+  <!-- Footer -->
+  <footer>
+    <a href="privacy.html">Privacy Policy</a> |
+    <a href="refund.html">Refund & Cancellation</a> |
+    <a href="terms.html">Terms & Conditions</a> |
+    <a href="contact.html">Contact Us</a>
   </footer>
 
+  <!-- Background Music -->
   <audio id="bg-music" src="Drums-Of-Liberation.mp3" autoplay loop></audio>
 
-  <!-- ✅ Add native token bridge -->
+  <!-- Native Token Bridge -->
   <script>
   (function(){
     try {
@@ -168,10 +182,10 @@
   })();
   </script>
 
-  <!-- Firebase still needed for Web-only guest users -->
+  <!-- Firebase Guest Auth -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB_v8PrYl2_3mUETzk-JYTxm3-YdE5FzE4",
@@ -183,18 +197,20 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    getAuth(app);
 
-    // If user already signed in natively (Android), skip to index page
+    // If already logged in natively → redirect
     const token = localStorage.getItem("idToken");
     if (token) {
       window.location.href = "indexpage.html";
     }
 
+    // Guest Login
     window.playAsGuest = function() {
       window.location.href = "playguest.html";
     }
 
+    // Music starts only after user interaction (fix autoplay policy)
     document.addEventListener("click", () => {
       const music = document.getElementById("bg-music");
       if (music.paused) {
