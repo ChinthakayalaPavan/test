@@ -31,7 +31,7 @@
       z-index: -1;
     }
 
-    /* Title Animation */
+    /* Title Logo */
     h1 {
       font-size: clamp(40px, 8vw, 80px);
       font-weight: 800;
@@ -41,8 +41,14 @@
       text-shadow: 2px 2px 5px rgba(0,0,0,0.6);
       animation: bounce 1.5s ease forwards;
     }
-    h1 span.orange { color: #b73105; animation: glow 1.5s infinite alternate; }
-    h1 span.green { color: #00ff99; animation: glow 1.5s infinite alternate; }
+    h1 span.orange {
+      color: #b73105;
+      animation: glow 1.5s infinite alternate;
+    }
+    h1 span.green {
+      color: #b73105;
+      animation: glow 1.5s infinite alternate;
+    }
 
     @keyframes bounce {
       0% { transform: scale(0.5) translateY(-100px); opacity: 0; }
@@ -52,11 +58,14 @@
     }
 
     @keyframes glow {
-      0% { text-shadow: 0 0 5px #fff, 0 0 5px currentColor; }
-      100% { text-shadow: 0 0 20px #fff, 0 0 20px currentColor; }
+      0% {
+        text-shadow: 0 0 5px #fff, 0 0 5px currentColor, 0 0 5px currentColor;
+      }
+      100% {
+        text-shadow: 0 0 20px #fff, 0 0 20px currentColor, 0 0 20px currentColor, 0 0 20px currentColor;
+      }
     }
 
-    /* Buttons */
     .button-box {
       display: flex;
       gap: 20px;
@@ -81,8 +90,19 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
+    .google-btn { background: #5f6368; color: white; }
+    .google-btn:hover { background: #444; }
+
+    .facebook-btn { background: #1877F2; color: white; }
+    .facebook-btn:hover { background: #0d5bd9; }
+
     .guest-btn { background: #FF6B00; color: white; }
     .guest-btn:hover { background: #cc5500; }
+
+    button img {
+      width: 24px;
+      height: 24px;
+    }
 
     @media (max-width: 600px) {
       h1 { margin-bottom: 40px; }
@@ -92,24 +112,6 @@
         padding: 12px 20px;
       }
     }
-
-    /* Footer */
-    footer {
-      text-align:center;
-      padding: 15px;
-      background:#111;
-      color:#fff;
-      position:fixed;
-      bottom:0;
-      width:100%;
-      font-size: 14px;
-    }
-    footer a {
-      color:#FFD700;
-      margin:0 10px;
-      text-decoration: none;
-    }
-    footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -120,6 +122,16 @@
     Your browser does not support HTML5 video.
   </video>
 
+  <footer style="text-align:center; padding: 15px; background:#111; color:#fff; position:fixed; bottom:0; width:100%;">
+    <a href="privacy.html" style="color:#FFD700; margin:0 10px;">Privacy Policy</a> |
+    <a href="refund.html" style="color:#FFD700; margin:0 10px;">Refund & Cancellation</a> |
+    <a href="terms.html" style="color:#FFD700; margin:0 10px;">Terms & Conditions</a> |
+    <a href="contact.html" style="color:#FFD700; margin:0 10px;">Contact Us</a>
+  </footer>
+
+  <!-- Background Music -->
+  <audio id="bg-music" src="Drums-Of-Liberation.mp3" autoplay loop></audio>
+
   <!-- Title -->
   <h1>
     <span class="orange">I got</span> <span class="green">Bingo</span>
@@ -127,65 +139,18 @@
 
   <!-- Buttons -->
   <div class="button-box">
+    <button class="google-btn" onclick="loginWithGoogle()">
+      <img src="google.png" alt="Google Logo"> Sign in with Google
+    </button>
+    <button class="facebook-btn" onclick="loginWithFacebook()">
+      <img src="facebook.png" alt="Facebook Logo"> Sign in with Facebook
+    </button>
     <button class="guest-btn" onclick="playAsGuest()">Play as Guest</button>
   </div>
 
-  <!-- Footer -->
-  <footer>
-    <a href="privacy.html">Privacy Policy</a> |
-    <a href="refund.html">Refund & Cancellation</a> |
-    <a href="terms.html">Terms & Conditions</a> |
-    <a href="contact.html">Contact Us</a>
-  </footer>
-
-  <!-- Background Music -->
-  <audio id="bg-music" src="Drums-Of-Liberation.mp3" autoplay loop></audio>
-
-  <!-- Native Token Bridge -->
-  <script>
-  (function(){
-    try {
-      const h = location.hash || '';
-      const m = h.match(/id_token=([^&]+)/);
-      if (m) {
-        const token = decodeURIComponent(m[1]);
-        localStorage.setItem('idToken', token);
-        history.replaceState(null, '', location.pathname + location.search);
-      }
-    } catch(e){}
-
-    window.authFetch = async function(url, opts={}) {
-      const headers = Object.assign({}, opts.headers || {});
-      const token = localStorage.getItem('idToken');
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-
-      const res = await fetch(url, Object.assign({}, opts, { headers }));
-      if (res.status === 401 && window.AndroidToken && AndroidToken.requestIdToken) {
-        await new Promise(resolve => {
-          window.onNativeIdToken = function(newTk){
-            localStorage.setItem('idToken', newTk);
-            resolve();
-          };
-          AndroidToken.requestIdToken();
-          setTimeout(resolve, 5000);
-        });
-        const retryHeaders = Object.assign({}, headers, { Authorization: 'Bearer ' + localStorage.getItem('idToken') });
-        return fetch(url, Object.assign({}, opts, { headers: retryHeaders }));
-      }
-      return res;
-    };
-
-    window.nativeLogout = function(){
-      if (window.AndroidToken && AndroidToken.signOut) AndroidToken.signOut();
-      localStorage.removeItem('idToken');
-    };
-  })();
-  </script>
-
-  <!-- Firebase Guest Auth -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB_v8PrYl2_3mUETzk-JYTxm3-YdE5FzE4",
@@ -197,20 +162,38 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    getAuth(app);
+    const auth = getAuth(app);
 
-    // If already logged in natively → redirect
-    const token = localStorage.getItem("idToken");
-    if (token) {
-      window.location.href = "indexpage.html";
-    }
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.location.href = "indexpage.html";
+      }
+    });
 
-    // Guest Login
     window.playAsGuest = function() {
       window.location.href = "playguest.html";
     }
 
-    // Music starts only after user interaction (fix autoplay policy)
+    window.loginWithGoogle = async function() {
+      const provider = new GoogleAuthProvider();
+      try {
+        await signInWithPopup(auth, provider);
+        window.location.href = "indexpage.html";
+      } catch (error) {
+        alert("Google login failed: " + error.message);
+      }
+    }
+
+    window.loginWithFacebook = async function() {
+      const provider = new FacebookAuthProvider();
+      try {
+        await signInWithPopup(auth, provider);
+        window.location.href = "indexpage.html";
+      } catch (error) {
+        alert("Facebook login failed: " + error.message);
+      }
+    }
+
     document.addEventListener("click", () => {
       const music = document.getElementById("bg-music");
       if (music.paused) {
