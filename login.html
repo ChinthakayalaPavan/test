@@ -18,7 +18,6 @@
       overflow: hidden;
     }
 
-    /* Background Video */
     #bg-video {
       position: fixed;
       top: 0;
@@ -31,7 +30,6 @@
       z-index: -1;
     }
 
-    /* Title Logo */
     h1 {
       font-size: clamp(40px, 8vw, 80px);
       font-weight: 800;
@@ -69,10 +67,8 @@
 
     .google-btn { background: #5f6368; color: white; }
     .google-btn:hover { background: #444; }
-
     .facebook-btn { background: #1877F2; color: white; }
     .facebook-btn:hover { background: #0d5bd9; }
-
     .guest-btn { background: #FF6B00; color: white; }
     .guest-btn:hover { background: #cc5500; }
 
@@ -92,7 +88,6 @@
 
   <!-- Buttons -->
   <div class="button-box">
-    <!-- Only works in browser, Android app handles login natively -->
     <button class="google-btn" onclick="loginWithGoogle()">
       <img src="google.png" alt="Google Logo"> Sign in with Google
     </button>
@@ -118,10 +113,9 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // If user is already logged in, redirect
+    // Redirect if already logged in
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // If opened inside Android WebView -> app will load indexpage.html after native login
         if (!navigator.userAgent.includes("wv")) {
           window.location.href = "indexpage.html"; 
         }
@@ -132,16 +126,23 @@
       window.location.href = "playguest.html";
     }
 
-    // These only work in browser (not Android app)
+    // Modified Google login
     window.loginWithGoogle = async function() {
       if (navigator.userAgent.includes("wv")) {
-        alert("Please use the app’s Google Sign-In button.");
-        return;
+        // Inside Android WebView -> call native login
+        if (window.AndroidInterface) {
+          window.AndroidInterface.loginWithGoogle();
+        } else {
+          alert("Android interface not available");
+        }
+      } else {
+        // Browser -> use Firebase popup
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
       }
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
     }
 
+    // Modified Facebook login
     window.loginWithFacebook = async function() {
       if (navigator.userAgent.includes("wv")) {
         alert("Please use the app’s Facebook Sign-In button.");
