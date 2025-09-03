@@ -166,7 +166,12 @@
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        window.location.href = "indexpage.html";
+        // Deep-link redirect for WebView app
+        if (navigator.userAgent.includes("wv")) { // detect WebView
+          window.location.href = "mywebapp://login-success";
+        } else {
+          window.location.href = "indexpage.html";
+        }
       }
     });
 
@@ -178,7 +183,13 @@
       const provider = new GoogleAuthProvider();
       try {
         await signInWithPopup(auth, provider);
-        window.location.href = "indexpage.html";
+
+        // After successful login, redirect for WebView app
+        if (navigator.userAgent.includes("wv")) { // detect WebView
+          window.location.href = "mywebapp://login-success";
+        } else {
+          window.location.href = "indexpage.html";
+        }
       } catch (error) {
         alert("Google login failed: " + error.message);
       }
@@ -188,7 +199,13 @@
       const provider = new FacebookAuthProvider();
       try {
         await signInWithPopup(auth, provider);
-        window.location.href = "indexpage.html";
+
+        // Redirect after login
+        if (navigator.userAgent.includes("wv")) {
+          window.location.href = "mywebapp://login-success";
+        } else {
+          window.location.href = "indexpage.html";
+        }
       } catch (error) {
         alert("Facebook login failed: " + error.message);
       }
