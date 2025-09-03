@@ -152,7 +152,8 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
   import { 
     getAuth, 
-    signInWithPopup, 
+    signInWithRedirect, 
+    getRedirectResult, 
     GoogleAuthProvider, 
     FacebookAuthProvider, 
     onAuthStateChanged 
@@ -170,47 +171,52 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  // ✅ Always check login state on page load
+  // ✅ Check redirect result (important for WebView)
+  getRedirectResult(auth)
+    .then((result) => {
+      if (result && result.user) {
+        console.log("Redirect login success:", result.user.email);
+        handleLoginSuccess();
+      }
+    })
+    .catch((error) => {
+      console.error("Redirect login error:", error.message);
+    });
+
+  // ✅ Also listen for auth state
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      console.log("User logged in:", user.email);
-
-      // WebView deep link
-      if (navigator.userAgent.includes("wv")) {
-        window.location.href = "mywebapp://login-success";
-      } else {
-        window.location.href = "indexpage.html";
-      }
-    } else {
-      console.log("No user, stay on login.html");
+      console.log("Auth state login success:", user.email);
+      handleLoginSuccess();
     }
   });
 
+  function handleLoginSuccess() {
+    if (navigator.userAgent.includes("wv")) { 
+      // inside WebView
+      window.location.href = "mywebapp://login-success";
+    } else {
+      // normal browser
+      window.location.href = "indexpage.html";
+    }
+  }
+
+  // Buttons
   window.playAsGuest = function() {
     window.location.href = "playguest.html";
   }
 
-  window.loginWithGoogle = async function() {
+  window.loginWithGoogle = function() {
     const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      // ✅ Redirect handled automatically by onAuthStateChanged
-    } catch (error) {
-      alert("Google login failed: " + error.message);
-    }
+    signInWithRedirect(auth, provider);
   }
 
-  window.loginWithFacebook = async function() {
+  window.loginWithFacebook = function() {
     const provider = new FacebookAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      // ✅ Redirect handled automatically by onAuthStateChanged
-    } catch (error) {
-      alert("Facebook login failed: " + error.message);
-    }
+    signInWithRedirect(auth, provider);
   }
 
-  // Fix autoplay music issue
+  // Fix autoplay music
   document.addEventListener("click", () => {
     const music = document.getElementById("bg-music");
     if (music.paused) {
@@ -219,6 +225,8 @@
   });
 </script>
 
+
 </body>
 </html>
+
 
