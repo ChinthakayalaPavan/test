@@ -171,11 +171,10 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  // ✅ Check redirect result (important for WebView)
+  // ✅ Handle redirect result (needed for WebView)
   getRedirectResult(auth)
     .then((result) => {
       if (result && result.user) {
-        console.log("Redirect login success:", result.user.email);
         handleLoginSuccess();
       }
     })
@@ -183,34 +182,35 @@
       console.error("Redirect login error:", error.message);
     });
 
-  // ✅ Also listen for auth state
+  // ✅ Listen for login state
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      console.log("Auth state login success:", user.email);
       handleLoginSuccess();
     }
   });
 
   function handleLoginSuccess() {
     if (navigator.userAgent.includes("wv")) { 
-      // inside WebView
+      // inside WebView → trigger deep link
       window.location.href = "mywebapp://login-success";
     } else {
-      // normal browser
+      // browser → go to indexpage.html
       window.location.href = "indexpage.html";
     }
   }
 
-  // Buttons
+  // Guest login
   window.playAsGuest = function() {
     window.location.href = "playguest.html";
   }
 
+  // Google login
   window.loginWithGoogle = function() {
     const provider = new GoogleAuthProvider();
     signInWithRedirect(auth, provider);
   }
 
+  // Facebook login
   window.loginWithFacebook = function() {
     const provider = new FacebookAuthProvider();
     signInWithRedirect(auth, provider);
@@ -226,7 +226,9 @@
 </script>
 
 
+
 </body>
 </html>
+
 
 
