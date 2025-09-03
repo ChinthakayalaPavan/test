@@ -149,74 +149,76 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { 
+    getAuth, 
+    signInWithPopup, 
+    GoogleAuthProvider, 
+    FacebookAuthProvider, 
+    onAuthStateChanged 
+  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_v8PrYl2_3mUETzk-JYTxm3-YdE5FzE4",
-      authDomain: "bingo-multiplayer-2b0de.firebaseapp.com",
-      projectId: "bingo-multiplayer-2b0de",
-      storageBucket: "bingo-multiplayer-2b0de.appspot.com",
-      messagingSenderId: "363457734024",
-      appId: "1:363457734024:web:56ddb17e0313fd8283463d"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyB_v8PrYl2_3mUETzk-JYTxm3-YdE5FzE4",
+    authDomain: "bingo-multiplayer-2b0de.firebaseapp.com",
+    projectId: "bingo-multiplayer-2b0de",
+    storageBucket: "bingo-multiplayer-2b0de.appspot.com",
+    messagingSenderId: "363457734024",
+    appId: "1:363457734024:web:56ddb17e0313fd8283463d"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // Deep-link redirect for WebView app
-        if (navigator.userAgent.includes("wv")) { // detect WebView
-          window.location.href = "mywebapp://login-success";
-        } else {
-          window.location.href = "indexpage.html";
-        }
+  // ✅ Always check login state on page load
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      console.log("User logged in:", user.email);
+
+      // WebView deep link
+      if (navigator.userAgent.includes("wv")) {
+        window.location.href = "mywebapp://login-success";
+      } else {
+        window.location.href = "indexpage.html";
       }
-    });
-
-    window.playAsGuest = function() {
-      window.location.href = "playguest.html";
+    } else {
+      console.log("No user, stay on login.html");
     }
+  });
 
-    window.loginWithGoogle = async function() {
-      const provider = new GoogleAuthProvider();
-      try {
-        await signInWithPopup(auth, provider);
+  window.playAsGuest = function() {
+    window.location.href = "playguest.html";
+  }
 
-        // After successful login, redirect for WebView app
-        if (navigator.userAgent.includes("wv")) { // detect WebView
-          window.location.href = "mywebapp://login-success";
-        } else {
-          window.location.href = "indexpage.html";
-        }
-      } catch (error) {
-        alert("Google login failed: " + error.message);
-      }
+  window.loginWithGoogle = async function() {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      // ✅ Redirect handled automatically by onAuthStateChanged
+    } catch (error) {
+      alert("Google login failed: " + error.message);
     }
+  }
 
-    window.loginWithFacebook = async function() {
-      const provider = new FacebookAuthProvider();
-      try {
-        await signInWithPopup(auth, provider);
-
-        // Redirect after login
-        if (navigator.userAgent.includes("wv")) {
-          window.location.href = "mywebapp://login-success";
-        } else {
-          window.location.href = "indexpage.html";
-        }
-      } catch (error) {
-        alert("Facebook login failed: " + error.message);
-      }
+  window.loginWithFacebook = async function() {
+    const provider = new FacebookAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      // ✅ Redirect handled automatically by onAuthStateChanged
+    } catch (error) {
+      alert("Facebook login failed: " + error.message);
     }
+  }
 
-    document.addEventListener("click", () => {
-      const music = document.getElementById("bg-music");
-      if (music.paused) {
-        music.play().catch(() => {});
-      }
-    });
-  </script>
+  // Fix autoplay music issue
+  document.addEventListener("click", () => {
+    const music = document.getElementById("bg-music");
+    if (music.paused) {
+      music.play().catch(() => {});
+    }
+  });
+</script>
+
 </body>
 </html>
+
