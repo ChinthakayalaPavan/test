@@ -2,154 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Bingo Login</title>
+  <title>Login</title>
   <style>
     body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
       font-family: Arial, sans-serif;
-      color: white;
       text-align: center;
-      padding: 20px;
-      overflow: hidden;
+      margin-top: 100px;
     }
-
-    #bg-video {
-      position: fixed;
-      top: 0;
-      left: 0;
-      min-width: 100%;
-      min-height: 100%;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: -1;
-    }
-
-    h1 {
-      font-size: clamp(40px, 8vw, 80px);
-      font-weight: 800;
-      margin-bottom: 60px;
-      text-transform: uppercase;
-      letter-spacing: 3px;
-      text-shadow: 2px 2px 5px rgba(0,0,0,0.6);
-    }
-    h1 span.orange { color: #b73105; }
-    h1 span.green { color: #b73105; }
-
-    .button-box {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      justify-content: center;
-      max-width: 90%;
-    }
-
     button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 14px 30px;
+      padding: 12px 24px;
       font-size: 18px;
+      border-radius: 8px;
       border: none;
-      border-radius: 40px;
+      background-color: #4285F4;
+      color: white;
       cursor: pointer;
-      transition: 0.3s;
-      font-weight: bold;
-      min-width: 230px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
-
-    .google-btn { background: #5f6368; color: white; }
-    .google-btn:hover { background: #444; }
-    .facebook-btn { background: #1877F2; color: white; }
-    .facebook-btn:hover { background: #0d5bd9; }
-    .guest-btn { background: #FF6B00; color: white; }
-    .guest-btn:hover { background: #cc5500; }
-
-    button img { width: 24px; height: 24px; }
+    button:hover {
+      background-color: #357AE8;
+    }
   </style>
 </head>
 <body>
+  <h2>Login Page</h2>
+  <button onclick="login()">Sign in with Google</button>
 
-  <!-- Background Video -->
-  <video autoplay muted loop id="bg-video">
-    <source src="bingo.mp4" type="video/mp4">
-    Your browser does not support HTML5 video.
-  </video>
-
-  <!-- Title -->
-  <h1><span class="orange">I got</span> <span class="green">Bingo</span></h1>
-
-  <!-- Buttons -->
-  <div class="button-box">
-    <button class="google-btn" onclick="loginWithGoogle()">
-      <img src="google.png" alt="Google Logo"> Sign in with Google
-    </button>
-    <button class="facebook-btn" onclick="loginWithFacebook()">
-      <img src="facebook.png" alt="Facebook Logo"> Sign in with Facebook
-    </button>
-    <button class="guest-btn" onclick="playAsGuest()">Play as Guest</button>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_v8PrYl2_3mUETzk-JYTxm3-YdE5FzE4",
-      authDomain: "bingo-multiplayer-2b0de.firebaseapp.com",
-      projectId: "bingo-multiplayer-2b0de",
-      storageBucket: "bingo-multiplayer-2b0de.appspot.com",
-      messagingSenderId: "363457734024",
-      appId: "1:363457734024:web:56ddb17e0313fd8283463d"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    // Redirect if already logged in
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        if (!navigator.userAgent.includes("wv")) {
-          window.location.href = "indexpage.html"; 
-        }
-      }
-    });
-
-    window.playAsGuest = function() {
-      window.location.href = "playguest.html";
-    }
-
-    // Modified Google login
-    window.loginWithGoogle = async function() {
-      if (navigator.userAgent.includes("wv")) {
-        // Inside Android WebView -> call native login
-        if (window.AndroidInterface) {
-          window.AndroidInterface.loginWithGoogle();
-        } else {
-          alert("Android interface not available");
-        }
+  <script>
+    function login() {
+      if (window.AndroidInterface && window.AndroidInterface.loginWithGoogle) {
+        // ✅ Call the native Android Google Sign-In
+        window.AndroidInterface.loginWithGoogle();
       } else {
-        // Browser -> use Firebase popup
-        const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        // ✅ Fallback: open in browser (useful for desktop testing)
+        window.location.href = "https://accounts.google.com";
       }
-    }
-
-    // Modified Facebook login
-    window.loginWithFacebook = async function() {
-      if (navigator.userAgent.includes("wv")) {
-        alert("Please use the app’s Facebook Sign-In button.");
-        return;
-      }
-      const provider = new FacebookAuthProvider();
-      await signInWithPopup(auth, provider);
     }
   </script>
 </body>
