@@ -39,32 +39,9 @@
       text-transform: uppercase;
       letter-spacing: 3px;
       text-shadow: 2px 2px 5px rgba(0,0,0,0.6);
-      animation: bounce 1.5s ease forwards;
     }
-    h1 span.orange {
-      color: #b73105;
-      animation: glow 1.5s infinite alternate;
-    }
-    h1 span.green {
-      color: #b73105;
-      animation: glow 1.5s infinite alternate;
-    }
-
-    @keyframes bounce {
-      0% { transform: scale(0.5) translateY(-100px); opacity: 0; }
-      50% { transform: scale(1.1) translateY(20px); opacity: 1; }
-      70% { transform: scale(0.9) translateY(-10px); }
-      100% { transform: scale(1) translateY(0); }
-    }
-
-    @keyframes glow {
-      0% {
-        text-shadow: 0 0 5px #fff, 0 0 5px currentColor, 0 0 5px currentColor;
-      }
-      100% {
-        text-shadow: 0 0 20px #fff, 0 0 20px currentColor, 0 0 20px currentColor, 0 0 20px currentColor;
-      }
-    }
+    h1 span.orange { color: #b73105; }
+    h1 span.green { color: #b73105; }
 
     .button-box {
       display: flex;
@@ -99,19 +76,7 @@
     .guest-btn { background: #FF6B00; color: white; }
     .guest-btn:hover { background: #cc5500; }
 
-    button img {
-      width: 24px;
-      height: 24px;
-    }
-
-    @media (max-width: 600px) {
-      h1 { margin-bottom: 40px; }
-      button {
-        min-width: 180px;
-        font-size: 16px;
-        padding: 12px 20px;
-      }
-    }
+    button img { width: 24px; height: 24px; }
   </style>
 </head>
 <body>
@@ -122,23 +87,12 @@
     Your browser does not support HTML5 video.
   </video>
 
-  <footer style="text-align:center; padding: 15px; background:#111; color:#fff; position:fixed; bottom:0; width:100%;">
-    <a href="privacy.html" style="color:#FFD700; margin:0 10px;">Privacy Policy</a> |
-    <a href="refund.html" style="color:#FFD700; margin:0 10px;">Refund & Cancellation</a> |
-    <a href="terms.html" style="color:#FFD700; margin:0 10px;">Terms & Conditions</a> |
-    <a href="contact.html" style="color:#FFD700; margin:0 10px;">Contact Us</a>
-  </footer>
-
-  <!-- Background Music -->
-  <audio id="bg-music" src="Drums-Of-Liberation.mp3" autoplay loop></audio>
-
   <!-- Title -->
-  <h1>
-    <span class="orange">I got</span> <span class="green">Bingo</span>
-  </h1>
+  <h1><span class="orange">I got</span> <span class="green">Bingo</span></h1>
 
   <!-- Buttons -->
   <div class="button-box">
+    <!-- Only works in browser, Android app handles login natively -->
     <button class="google-btn" onclick="loginWithGoogle()">
       <img src="google.png" alt="Google Logo"> Sign in with Google
     </button>
@@ -149,86 +103,53 @@
   </div>
 
   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import { 
-    getAuth, 
-    signInWithRedirect, 
-    getRedirectResult, 
-    GoogleAuthProvider, 
-    FacebookAuthProvider, 
-    onAuthStateChanged 
-  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB_v8PrYl2_3mUETzk-JYTxm3-YdE5FzE4",
-    authDomain: "bingo-multiplayer-2b0de.firebaseapp.com",
-    projectId: "bingo-multiplayer-2b0de",
-    storageBucket: "bingo-multiplayer-2b0de.appspot.com",
-    messagingSenderId: "363457734024",
-    appId: "1:363457734024:web:56ddb17e0313fd8283463d"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyB_v8PrYl2_3mUETzk-JYTxm3-YdE5FzE4",
+      authDomain: "bingo-multiplayer-2b0de.firebaseapp.com",
+      projectId: "bingo-multiplayer-2b0de",
+      storageBucket: "bingo-multiplayer-2b0de.appspot.com",
+      messagingSenderId: "363457734024",
+      appId: "1:363457734024:web:56ddb17e0313fd8283463d"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-  // ✅ Handle redirect result (needed for WebView)
-  getRedirectResult(auth)
-    .then((result) => {
-      if (result && result.user) {
-        handleLoginSuccess();
+    // If user is already logged in, redirect
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // If opened inside Android WebView -> app will load indexpage.html after native login
+        if (!navigator.userAgent.includes("wv")) {
+          window.location.href = "indexpage.html"; 
+        }
       }
-    })
-    .catch((error) => {
-      console.error("Redirect login error:", error.message);
     });
 
-  // ✅ Listen for login state
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      handleLoginSuccess();
+    window.playAsGuest = function() {
+      window.location.href = "playguest.html";
     }
-  });
 
-  function handleLoginSuccess() {
-    if (navigator.userAgent.includes("wv")) { 
-      // inside WebView → trigger deep link
-      window.location.href = "mywebapp://login-success";
-    } else {
-      // browser → go to indexpage.html
-      window.location.href = "indexpage.html";
+    // These only work in browser (not Android app)
+    window.loginWithGoogle = async function() {
+      if (navigator.userAgent.includes("wv")) {
+        alert("Please use the app’s Google Sign-In button.");
+        return;
+      }
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
     }
-  }
 
-  // Guest login
-  window.playAsGuest = function() {
-    window.location.href = "playguest.html";
-  }
-
-  // Google login
-  window.loginWithGoogle = function() {
-    const provider = new GoogleAuthProvider();
-    signInWithRedirect(auth, provider);
-  }
-
-  // Facebook login
-  window.loginWithFacebook = function() {
-    const provider = new FacebookAuthProvider();
-    signInWithRedirect(auth, provider);
-  }
-
-  // Fix autoplay music
-  document.addEventListener("click", () => {
-    const music = document.getElementById("bg-music");
-    if (music.paused) {
-      music.play().catch(() => {});
+    window.loginWithFacebook = async function() {
+      if (navigator.userAgent.includes("wv")) {
+        alert("Please use the app’s Facebook Sign-In button.");
+        return;
+      }
+      const provider = new FacebookAuthProvider();
+      await signInWithPopup(auth, provider);
     }
-  });
-</script>
-
-
-
+  </script>
 </body>
 </html>
-
-
-
